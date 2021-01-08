@@ -1,0 +1,24 @@
+import os
+
+rule fastp:
+    input:
+        i = "{fq_dir}/{{S}}_{pair}.fastq.gz".format(fq_dir=FQ_DIR, pair=PAIR1),
+        I = "{fq_dir}/{{S}}_{pair}.fastq.gz".format(fq_dir=FQ_DIR, pair=PAIR2)
+    output:
+        o = os.path.join(FQ_DIR, "fastp_output/{S}_1_fastp.fq.gz"),
+        O = os.path.join(FQ_DIR, "fastp_output/{S}_2_fastp.fq.gz"),
+        html = os.path.join(FQ_DIR, "fastp_output/html_report/{S}.html"),
+        json = os.path.join(FQ_DIR, "fastp_output/json_report/{S}.json")
+    log:
+        os.path.join(FQ_DIR, "logs/fastp/{S}.log")
+    message: """--- fastq preprocessing using fastp ---"""
+    shell:
+        "fastp -x -g -c -i {input.i} -I {input.I} "
+        "-o {output.o} "
+        "-O {output.O} "
+        "-h {output.html} "
+        "-j {output.json} "
+        "&> {log}"
+
+
+#

@@ -1,0 +1,16 @@
+import os
+
+
+rule bwa_mem:
+    input:
+        F =  "{fq_dir}/{{S}}_{pair}.fastq.gz".format(fq_dir=FQ_DIR, pair=PAIR1),
+        R =  "{fq_dir}/{{S}}_{pair}.fastq.gz".format(fq_dir=FQ_DIR, pair=PAIR2)
+    output:
+        temp(os.path.join(FQ_DIR, "bam_files/{S}.bam"))
+    log:
+        os.path.join(FQ_DIR, "logs/bwa/{S}.log")
+    params:
+        threads = 16
+    message: """--- reads alignment using bwa mem ---"""
+    shell:
+        "(bwa mem -t {params.threads} {REF} {input.F} {input.R} | samtools view -Sb - > {output}) &> {log}"

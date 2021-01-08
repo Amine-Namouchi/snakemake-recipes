@@ -1,0 +1,64 @@
+import os
+
+
+rule samtools_sort:
+    input:
+        os.path.join(FQ_DIR,"bam_RG_files/{S}.bam")
+    output:
+        temp (os.path.join(FQ_DIR,"sorted_bam/{S}.bam"))
+    threads:16
+    params:
+        memo=2
+    message: """--- sorting bam file using samtools sort ---"""
+    shell:
+        "samtools sort -@ {threads} -m {params.memo}G -O bam {input} > {output}"
+
+#############################################################################################################
+
+rule samtools_index1:
+    input:
+        os.path.join(FQ_DIR,"removeDUP_reads/{S}.bam")
+    output:
+        os.path.join(FQ_DIR,"removeDUP_reads/{S}.bam.bai")
+    message: """--- indexing bam file using samtools index ---"""
+    shell:
+        "samtools index {input} {output}"
+
+#############################################################################################################
+
+rule samtools_index2:
+    input:
+        os.path.join(FQ_DIR,"removeDUP_realigned_reads/{S}.bam")
+    output:
+        os.path.join(FQ_DIR,"removeDUP_realigned_reads/{S}.bam.bai")
+    message: """--- indexing bam file using samtools index ---"""
+    shell:
+        "samtools index {input} {output}"
+
+#############################################################################################################
+
+rule samtools_mpileup:
+    input:
+        os.path.join(FQ_DIR,"removeDUP_realigned_reads/{S}.bam")
+    output:
+        os.path.join(FQ_DIR,"variants_calling/samtools/original/{S}.vcf.gz")
+    threads: 2
+    message: """--- variants calling samtools mpileup ---"""
+    shell:
+        "samtools mpileup -ugf {REF} {input} | "
+        "bcftools call -vmO z - > {output} "
+
+#############################################################################################################
+
+rule bcftools:
+    input:
+        os.path.join(FQ_DIR,"variants_calling/samtools/original/{S}.vcf.gz")
+    output:
+        os.path.join(FQ_DIR,"variants_calling/samtools/filtered/{S}_filtered.vcf.gz")
+    params:
+        npGap=10
+    message: """--- variants filtering using bcftools ---"""
+    shell:
+        "bcftools filter -O z -o {output} -g {params.npGap} -s LOWQUAL -i'%QUAL>19' {input}"
+
+#############################################################################################################

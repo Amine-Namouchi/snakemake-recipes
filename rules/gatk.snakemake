@@ -1,0 +1,86 @@
+import os
+
+
+rule RealignerTargetCreator:
+    input:
+        bam = os.path.join(FQ_DIR, "removeDUP_reads/{S}.bam"),
+        bai = os.path.join(FQ_DIR, "removeDUP_reads/{S}.bam.bai")
+    output:
+        temp(os.path.join(FQ_DIR, "target_intervals/{S}_target.intervals"))
+    log:
+        os.path.join(FQ_DIR, "logs/gatk/{S}_RealignerTargetCreator.log")
+    message: """--- gatk RealignerTargetCreator ---"""
+    shell:
+        "java -jar /Users/amine/Documents/Tools/gatk/GenomeAnalysisTK.jar -T RealignerTargetCreator "
+        "-R {REF} "
+        "-I {input.bam} "
+        "-o {output}"
+
+#############################################################################################################
+
+rule IndelRealigner:
+    input:
+        bam = os.path.join(FQ_DIR, "removeDUP_reads/{S}.bam"),
+        intervals = os.path.join(
+            FQ_DIR, "target_intervals/{S}_target.intervals")
+    output:
+        os.path.join(FQ_DIR, "removeDUP_realigned_reads/{S}.bam")
+    log:
+        os.path.join(FQ_DIR, "logs/gatk/{S}_IndelRealigner.log")
+    message: """--- gatk IndelRealigner ---"""
+    shell:
+        "java -jar /Users/amine/Documents/Tools/gatk/GenomeAnalysisTK.jar -T IndelRealigner "
+        "-R {REF} "
+        "-I {input.bam} "
+        "-targetIntervals "
+        "{input.intervals} "
+        "-o {output} "
+        "--filter_bases_not_stored "
+        "&> {log}"
+
+#############################################################################################################
+
+rule GATKHaplotypeCaller:
+    input:
+        os.path.join(FQ_DIR, "removeDUP_realigned_reads/{S}.bam")
+    output:
+        os.path.join(
+            FQ_DIR, "variants_calling/GATKHaplotypeCaller/original/{S}_haplotyper.vcf")
+    log:
+        os.path.join(FQ_DIR, "logs/gatk/{S}_GATKHaplotypeCaller.log")
+    params:
+        stand_emit_conf = 20
+    message: """--- gatk GATKHaplotypeCaller ---"""
+    shell:
+        "java -jar /Users/amine/Documents/Tools/gatk/GenomeAnalysisTK.jar -T HaplotypeCaller "
+        "-R {REF} "
+        "-I {input} "
+        "-o {output} "
+        "-stand_call_conf {params.stand_emit_conf} "
+        "&> {log}"
+
+#############################################################################################################
+
+rule gatkVariantFiltration:
+    input:
+        os.path.join(
+            FQ_DIR, "variants_calling/GATKHaplotypeCaller/original/{S}_haplotyper.vcf")
+    output:
+        os.path.join(
+            FQ_DIR, "variants_calling/GATKHaplotypeCaller/filtered/{S}_haplotyper_filtered.vcf")
+    log:
+        os.path.join(FQ_DIR, "logs/gatk/{S}_gatkVariantFiltration.log")
+    params:
+        DP = 3,
+        QUAL = 19
+    message: """--- gatk gatkVariantFiltration ---"""
+    shell:
+        "java -jar /Users/amine/Documents/Tools/gatk/GenomeAnalysisTK.jar -T VariantFiltration "
+        "-R {REF} "
+        "-V {input} "
+        "-o {output} "
+        "--filterName 'CovHigh5' "
+        "--filterExpression 'DP>{params.DP}' "
+        "--filterName 'BasQual30' "
+        "--filterExpression 'QUAL>{params.QUAL}' "
+        "&> {log}"

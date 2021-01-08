@@ -1,0 +1,30 @@
+import os
+
+rule bwa_aln:
+    input:
+        mergedFq=os.path.join(FQ_DIR,"merged/{S}_merged.fq.gz")
+    output:
+        saiFile = temp (os.path.join(FQ_DIR,"merged/{S}_merged.sai"))
+    log:
+        os.path.join(FQ_DIR,"logs/bwa_aln/{S}.aln.log")
+    params:
+        threads=2
+    shell:
+        "bwa aln -t {params.threads} {REF} {input.mergedFq} -n 0.1 -l 10000 > {output.saiFile} 2> {log}"
+
+#############################################################################################################
+
+rule bwa_samse:
+    input:
+        SaiFq=os.path.join(FQ_DIR,"merged/{S}_merged.sai"),
+        singleFq=os.path.join(FQ_DIR,"merged/{S}_merged.fq.gz")
+    output:
+        temp (os.path.join(FQ_DIR,"bam_files/{S}.bam"))
+    log:
+        os.path.join(FQ_DIR,"logs/bwa_aln/{S}.samse.log")
+    params:
+        qualityRead=20,
+        threads=2
+    shell:
+        "(bwa samse {REF} {input.SaiFq} {input.singleFq} | "
+        "samtools view -@ {params.threads} -Sb -q {params.qualityRead} - > {output}) 2> {log}"

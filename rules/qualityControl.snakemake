@@ -1,0 +1,47 @@
+
+##############################################################################################################
+
+rule Fastqc_Raw:
+    input:
+         i="{fq_dir}/{{S}}_{pair}.fastq.gz".format(fq_dir=FQ_DIR, pair=PAIR1),
+         I="{fq_dir}/{{S}}_{pair}.fastq.gz".format(fq_dir=FQ_DIR, pair=PAIR2)
+    output:
+        out1=os.path.join(FQ_DIR,"fastqc_output/raw/{S}/{S}_1_fastqc.zip"),
+        out2=os.path.join(FQ_DIR,"fastqc_output/raw/{S}/{S}_2_fastqc.zip")
+    log:
+        os.path.join(FQ_DIR,"logs/fastqc_raw/{S}.log")
+    message: """--- quality control using Fastqc on the raw data ---"""
+    run:
+        dirname = expand(os.path.join(FQ_DIR,"fastqc_output/raw/{S}"),S=SAMPLES)
+        shell("fastqc {input.i} {input.I} -o {dirname} 2> {log}")
+
+
+##############################################################################################################
+
+rule Fastqc_Clean:
+    input:
+        i=os.path.join(FQ_DIR,"fastp_output/{S}_1_fastp.fq.gz"),
+        I=os.path.join(FQ_DIR,"fastp_output/{S}_2_fastp.fq.gz")
+    output:
+        os.path.join(FQ_DIR,"fastqc_output/clean/{S}/{S}_1_fastp_fastqc.zip"),
+        os.path.join(FQ_DIR,"fastqc_output/clean/{S}/{S}_2_fastp_fastqc.zip")
+    log:
+        os.path.join(FQ_DIR,"logs/fastqc_clean/{S}.log")
+    message: """--- quality control using Fastqc on the clean data ---"""
+    run:
+        dirname = expand(os.path.join(FQ_DIR,"fastqc_output/clean/{S}"),S=SAMPLES)
+        shell("fastqc {input.i} {input.I} -o {dirname} 2> {log}")
+
+##############################################################################################################
+
+rule qualimap:
+    input:
+        os.path.join(FQ_DIR,"removeDUP_realigned_reads/{S}.bam")
+    output:
+        os.path.join(FQ_DIR,"qualimap/{S}/qualimapReport.html")
+    log:
+        os.path.join(FQ_DIR,"logs/qualimap/{S}.log")
+    message: """--- quality control using qualimap on bam file(s) ---"""
+    run:
+        dirname = expand(os.path.join(FQ_DIR,"qualimap/{S}"),S=SAMPLES)
+        shell("qualimap bamqc -bam {input} -outdir {dirname} > {log}")

@@ -1,0 +1,50 @@
+import os
+
+rule AddOrReplaceReadGroups:
+    input:
+        os.path.join(FQ_DIR, "bam_files/{S}.bam")
+    output:
+        temp(os.path.join(FQ_DIR, "bam_RG_files/{S}.bam"))
+    log:
+        os.path.join(FQ_DIR, "logs/picard/{S}_AddOrReplaceReadGroups.log")
+    params:
+        RGID = '{S}',
+        RGSM = '{S}',
+        RGLB = 'libraryNGS',
+        RGPL = 'illumina',
+        RGPU = 'group'
+    message: """--- adding read group to bam file using picard AddOrReplaceReadGroups ---"""
+    shell:
+        "picard AddOrReplaceReadGroups "
+        "VALIDATION_STRINGENCY=LENIENT "
+        "I={input} "
+        "O={output} "
+        "RGID={params.RGID} "
+        "RGLB={params.RGLB} "
+        "RGPL={params.RGPL} "
+        "RGPU={params.RGPU} "
+        "RGSM={params.RGSM} "
+        "&> {log}"
+
+#############################################################################################################
+
+rule MarkDuplicates:
+    input:
+        os.path.join(FQ_DIR, "sorted_bam/{S}.bam")
+    output:
+        removeDUP = temp(os.path.join(FQ_DIR, "removeDUP_reads/{S}.bam")),
+        removeDUP_metrics = temp(os.path.join(
+            FQ_DIR, "removeDUP_reads/{S}_removeDUP_metrics.txt"))
+    log:
+        os.path.join(FQ_DIR, "logs/picard/{S}_MarkDuplicates.log")
+    message: """--- removing duplicated reads using picard MarDuplicates ---"""
+    shell:
+        "picard MarkDuplicates "
+        "REMOVE_DUPLICATES=True "
+        "VALIDATION_STRINGENCY=LENIENT "
+        "I={input} "
+        "O={output.removeDUP} "
+        "M={output.removeDUP_metrics} "
+        "&> {log}"
+
+#############################################################################################################

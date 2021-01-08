@@ -1,0 +1,28 @@
+import os
+
+rule ClipAndMerge:
+    input:
+         R1=os.path.join(FQ_DIR,"fastp_output/{S}_1_fastp.fq.gz"),
+         R2=os.path.join(FQ_DIR,"fastp_output/{S}_2_fastp.fq.gz")
+    output:
+         os.path.join(FQ_DIR,"merged/{S}_merged.fq.gz")
+    log:
+        os.path.join(FQ_DIR,"logs/ClipAndMerge/{S}.log")
+    message: """--- reads merging using ClipAndMerge-1.7.4.jar ---"""
+    shell:
+        "java -jar /Users/aminen/Documents/toolbox/ClipAndMerge/ClipAndMerge-1.7.4.jar -no_clipping -in1 {input.R1} -in2 {input.R2} -o {output} -log {log}"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#
